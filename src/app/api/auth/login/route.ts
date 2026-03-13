@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail } from '@/lib/db';
+import { convex } from '@/lib/convex';
+import { api } from '@/convex/_generated/api';
 import { verifyPassword, generateToken, setAuthCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const user = await getUserByEmail(email);
+    const user = await convex.query(api.users.getByEmail, { email });
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid credentials' },
@@ -30,11 +31,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const token = generateToken(user.id, user.email);
+    const token = generateToken(user._id, user.email);
     const cookie = setAuthCookie(token);
 
     const response = NextResponse.json({
-      user: { id: user.id, email: user.email, company_name: user.company_name },
+      user: { id: user._id, email: user.email, company_name: user.companyName },
       message: 'Login successful'
     });
 

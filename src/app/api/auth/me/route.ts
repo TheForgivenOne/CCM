@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getUserById } from '@/lib/db';
+import { convex } from '@/lib/convex';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
 export async function GET() {
@@ -21,8 +23,8 @@ export async function GET() {
       );
     }
 
-    const userId = parseInt(payload.userId, 10);
-    const user = await getUserById(userId);
+    const userId = payload.userId as Id<"users">;
+    const user = await convex.query(api.users.getById, { id: userId });
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
@@ -31,7 +33,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      user: { id: user.id, email: user.email, company_name: user.company_name }
+      user: { id: user._id, email: user.email, company_name: user.companyName }
     });
   } catch (error) {
     console.error('Auth check error:', error);

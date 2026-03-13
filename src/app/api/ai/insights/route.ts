@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { Mistral } from '@mistralai/mistralai';
-import { getTransactionsByUserId, getBalance, getSettingsByUserId, createSettings } from '@/lib/db';
+import { convex } from '@/lib/convex';
+import { api } from '@/convex/_generated/api';
+import { Id } from '@/convex/_generated/dataModel';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
 const mistral = new Mistral({ apiKey: process.env.MISTRAL_API_KEY });
@@ -18,29 +20,32 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = payload.userId;
-    const transactions = await getTransactionsByUserId(userId);
-    const balance = await getBalance(userId);
-    let settings = await getSettingsByUserId(userId);
+    const userId = payload.userId as Id<"users">;
+    const transactions = await convex.query(api.transactions.getByUser, { userId });
+    const balance = await convex.query(api.transactions.getBalance, { userId });
+    let settings = await convex.query(api.settings.getByUser, { userId });
+
     if (!settings) {
-      settings = await createSettings(userId);
+      await convex.mutation(api.settings.create, { userId });
+      settings = await convex.query(api.settings.getByUser, { userId });
     }
 
-    const incomeCategories = JSON.parse(settings.income_categories);
-    const expenseCategories = JSON.parse(settings.expense_categories);
+    const incomeCategories = settings?.incomeCategories || [];
+    const expenseCategories = settings?.expenseCategories || [];
 
     const recentTransactions = transactions.slice(0, 20);
     
     const incomeTotal = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
+      .filter((t: { type: string }) => t.type === 'income')
+      .reduce((sum: number, t: { amount: number }) => sum + t.amount, 0);
     
     const expenseTotal = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
+      .filter((t: { type: string }) => t.type === 'expense')
+      .reduce((sum: number, t: { amount: number }) => sum + t.amount, 0);
 
-    const monthlyExpenses = expenseTotal / Math.max(1, new Set(transactions.map(t => t.date.substring(0, 7))).size);
-    const investableCash = Math.max(0, balance - (monthlyExpenses * 3) - settings.savings_target);
+    const monthlyDates = new Set(transactions.map((t: { date: number }) => new Date(t.date).toISOString().substring(0, 7)));
+    const monthlyExpenses = expenseTotal / Math.max(1, monthlyDates.size);
+    const investableCash = Math.max(0, balance - (monthlyExpenses * 3) - (settings?.savingsTarget || 0));
 
     const prompt = `You are a financial advisor analyzing a user's cash flow. Provide actionable insights.
 
@@ -50,10 +55,10 @@ User's Financial Summary:
 - Total Expenses: $${expenseTotal.toFixed(2)}
 - Average Monthly Expenses: $${monthlyExpenses.toFixed(2)}
 - Potential Investable Cash: $${investableCash.toFixed(2)}
-- Savings Target: $${settings.savings_target}
+- Savings Target: $${settings?.savingsTarget || 0}
 
 Recent Transactions (last 20):
-${recentTransactions.map(t => `- ${t.date.substring(0, 10)} | ${t.type.toUpperCase()} | $${t.amount} | ${t.category} | ${t.description || ''}`).join('\n')}
+${recentTransactions.map((t: { date: number; type: string; amount: number; category: string; description?: string }) => `- ${new Date(t.date).toISOString().substring(0, 10)} | ${t.type.toUpperCase()} | $${t.amount} | ${t.category} | ${t.description || ''}`).join('\n')}
 
 Income Categories: ${incomeCategories.join(', ')}
 Expense Categories: ${expenseCategories.join(', ')}

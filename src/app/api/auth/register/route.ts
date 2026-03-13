@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserByEmail, createUser, createSettings } from '@/lib/db';
+import { convex } from '@/lib/convex';
+import { api } from '@/convex/_generated/api';
 import { hashPassword, generateToken, setAuthCookie } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingUser = await getUserByEmail(email);
+    const existingUser = await convex.query(api.users.getByEmail, { email });
     if (existingUser) {
       return NextResponse.json(
         { error: 'User already exists' },
@@ -23,15 +24,23 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
-    const user = await createUser(email, hashedPassword, companyName);
-    
-    await createSettings(user.id);
+    const userId = await convex.mutation(api.auth.createUserWithSettings, {
+      email,
+      password: hashedPassword,
+      companyName
+    });
 
-    const token = generateToken(user.id, user.email);
+    const user = await convex.query(api.users.getById, { id: userId });
+    
+    if (!user) {
+      throw new Error("Failed to create user");
+    }
+
+    const token = generateToken(userId, user.email);
     const cookie = setAuthCookie(token);
 
     const response = NextResponse.json({
-      user: { id: user.id, email: user.email, company_name: user.company_name },
+      user: { id: user._id, email: user.email, company_name: user.companyName },
       message: 'Registration successful'
     });
 
