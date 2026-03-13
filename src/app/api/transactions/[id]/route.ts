@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTransactionsByUserId, updateTransaction, deleteTransaction } from '@/lib/db';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
+import { convex } from '@/lib/convex';
+import { api } from '../../../../../convex/_generated/api';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 async function getUserFromToken() {
   const token = await getTokenFromCookies();
@@ -16,12 +18,14 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     const { id } = await params;
-    const transactionId = parseInt(id);
+    const transactionId = id as Id<"transactions">;
     
-    const transactions = getTransactionsByUserId(payload.userId);
-    const transaction = transactions.find(t => t.id === transactionId);
+    const transaction = await convex.query(
+      api.transactions.getById,
+      { id: transactionId }
+    );
     
-    if (!transaction) {
+    if (!transaction || transaction.userId !== payload.userId) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
     }
 
@@ -32,13 +36,23 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const updated = updateTransaction(
-      transactionId,
-      parseFloat(amount),
-      type,
-      category,
-      description || '',
-      date
+    const dateTimestamp = new Date(date).getTime();
+
+    await convex.mutation(
+      api.transactions.update,
+      {
+        id: transactionId,
+        amount: parseFloat(amount),
+        type,
+        category,
+        description: description || '',
+        date: dateTimestamp,
+      }
+    );
+
+    const updated = await convex.query(
+      api.transactions.getById,
+      { id: transactionId }
     );
 
     return NextResponse.json({ transaction: updated, message: 'Transaction updated' });
@@ -56,16 +70,21 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     }
 
     const { id } = await params;
-    const transactionId = parseInt(id);
+    const transactionId = id as Id<"transactions">;
     
-    const transactions = getTransactionsByUserId(payload.userId);
-    const transaction = transactions.find(t => t.id === transactionId);
+    const transaction = await convex.query(
+      api.transactions.getById,
+      { id: transactionId }
+    );
     
-    if (!transaction) {
+    if (!transaction || transaction.userId !== payload.userId) {
       return NextResponse.json({ error: 'Transaction not found' }, { status: 404 });
     }
 
-    deleteTransaction(transactionId);
+    await convex.mutation(
+      api.transactions.remove,
+      { id: transactionId }
+    );
 
     return NextResponse.json({ message: 'Transaction deleted' });
   } catch (error) {

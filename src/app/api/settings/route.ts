@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSettingsByUserId, updateSettings, createSettings, getUserById } from '@/lib/db';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
+import { convex } from '@/lib/convex';
+import { api } from '../../../../convex/_generated/api';
+import { Id } from '../../../../convex/_generated/dataModel';
 
 async function getUserFromToken() {
   const token = await getTokenFromCookies();
@@ -8,28 +10,43 @@ async function getUserFromToken() {
   return verifyToken(token);
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const payload = await getUserFromToken();
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let settings = getSettingsByUserId(payload.userId);
+    const userId = payload.userId as Id<"users">;
+    let settings = await convex.query(
+      api.settings.getByUser,
+      { userId }
+    );
+
     if (!settings) {
-      settings = createSettings(payload.userId);
+      await convex.mutation(
+        api.settings.create,
+        { userId }
+      );
+      settings = await convex.query(
+        api.settings.getByUser,
+        { userId }
+      );
     }
 
-    const user = getUserById(payload.userId);
+    const user = await convex.query(
+      api.users.getById,
+      { id: userId }
+    );
 
     return NextResponse.json({
       settings: {
         ...settings,
-        income_categories: JSON.parse(settings.income_categories),
-        expense_categories: JSON.parse(settings.expense_categories),
-        reinvestment_rules: JSON.parse(settings.reinvestment_rules),
+        income_categories: settings?.incomeCategories || [],
+        expense_categories: settings?.expenseCategories || [],
+        reinvestment_rules: settings?.reinvestmentRules || [],
       },
-      company_name: user?.company_name
+      company_name: user?.companyName
     });
   } catch (error) {
     console.error('Get settings error:', error);
@@ -47,22 +64,32 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { incomeCategories, expenseCategories, savingsTarget, warningThreshold, reinvestmentRules, companyName } = body;
 
-    const settings = updateSettings(
-      payload.userId,
-      incomeCategories || [],
-      expenseCategories || [],
-      savingsTarget || 0,
-      warningThreshold || 0,
-      reinvestmentRules || [],
-      companyName
+    const userId = payload.userId as Id<"users">;
+    const settings = await convex.mutation(
+      api.settings.update,
+      {
+        userId,
+        incomeCategories: incomeCategories || [],
+        expenseCategories: expenseCategories || [],
+        savingsTarget: savingsTarget || 0,
+        warningThreshold: warningThreshold || 0,
+        reinvestmentRules: reinvestmentRules || [],
+      }
     );
+
+    if (companyName) {
+      await convex.mutation(
+        api.users.updateCompanyName,
+        { id: userId, companyName }
+      );
+    }
 
     return NextResponse.json({ 
       settings: {
         ...settings,
-        income_categories: JSON.parse(settings!.income_categories),
-        expense_categories: JSON.parse(settings!.expense_categories),
-        reinvestment_rules: JSON.parse(settings!.reinvestment_rules),
+        income_categories: settings?.incomeCategories || [],
+        expense_categories: settings?.expenseCategories || [],
+        reinvestment_rules: settings?.reinvestmentRules || [],
       },
       message: 'Settings updated' 
     });
