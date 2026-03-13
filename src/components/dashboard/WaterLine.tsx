@@ -1,27 +1,64 @@
 'use client';
 
 interface WaterLineProps {
-  percentage?: number;
+  data?: number[];
+  width?: number;
+  height?: number;
 }
 
-export default function WaterLine({ percentage = 50 }: WaterLineProps) {
+export default function WaterLine({ data = [30, 45, 35, 50, 42, 60, 55], width = 300, height = 80 }: WaterLineProps) {
+  const maxValue = Math.max(...data, 0);
+  const minValue = Math.min(...data, 0);
+  const range = maxValue - minValue || 1;
+
+  const points = data.map((value, index) => {
+    const x = (index / (data.length - 1)) * width;
+    const y = height - ((value - minValue) / range) * height;
+    return `${x},${y}`;
+  }).join(' ');
+
   return (
-    <div className="relative w-full h-1 overflow-hidden">
-      <div 
-        className="absolute h-full bg-gradient-to-r from-transparent via-[#0EA5E9] to-transparent opacity-80"
-        style={{ 
-          width: '100%',
-          animation: 'waterFlow 3s ease-in-out infinite',
-        }}
+    <svg width={width} height={height} className="overflow-visible">
+      {/* Gradient definition */}
+      <defs>
+        <linearGradient id="waterLineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#0EA5E9" stopOpacity="0.8" />
+          <stop offset="100%" stopColor="#0EA5E9" stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
+
+      {/* Area fill */}
+      <polygon
+        points={`0,${height} ${points} ${width},${height}`}
+        fill="url(#waterLineGradient)"
+        className="opacity-50"
       />
-      <div 
-        className="absolute h-full w-2 bg-[#0EA5E9] rounded-full blur-sm"
-        style={{ 
-          left: `${Math.min(100, Math.max(0, percentage))}%`,
-          transform: 'translateX(-50%)',
-          animation: 'waterDrop 2s ease-in-out infinite',
-        }}
+
+      {/* Line */}
+      <polyline
+        points={points}
+        fill="none"
+        stroke="#0EA5E9"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-    </div>
+
+      {/* Data points */}
+      {data.map((value, index) => {
+        const x = (index / (data.length - 1)) * width;
+        const y = height - ((value - minValue) / range) * height;
+        return (
+          <circle
+            key={index}
+            cx={x}
+            cy={y}
+            r="4"
+            fill="#0EA5E9"
+            className="opacity-80"
+          />
+        );
+      })}
+    </svg>
   );
 }

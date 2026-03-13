@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingUser = getUserByEmail(email);
+    const existingUser = await getUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'User already exists' },
@@ -23,9 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const hashedPassword = await hashPassword(password);
-    const user = createUser(email, hashedPassword, companyName);
+    const user = await createUser(email, hashedPassword, companyName);
     
-    createSettings(user.id);
+    await createSettings(user.id);
 
     const token = generateToken(user.id, user.email);
     const cookie = setAuthCookie(token);

@@ -108,7 +108,7 @@ export default function SettingsPage() {
 
       setMessage('Settings saved successfully!');
       setTimeout(() => setMessage(''), 3000);
-    } catch (err) {
+    } catch {
       setMessage('Failed to save settings');
     } finally {
       setIsSaving(false);

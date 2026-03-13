@@ -1,16 +1,89 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "render": {
-      "type": "remote",
-      "url": "https://mcp.render.com/mcp",
-      "enabled": true,
-      "oauth": {}
+  "default_agent": "plan",
+  "autoupdate": true,
+  "share": "manual",
+  "permission": {
+    "bash": "ask",
+    "edit": "ask",
+    "write": "ask",
+    "delete": "ask"
+  },
+  "compaction": {
+    "auto": true,
+    "prune": true,
+    "reserved": 10000
+  },
+  "watcher": {
+    "ignore": [
+      "node_modules/**",
+      "dist/**",
+      ".git/**",
+      "__pycache__/**",
+      "*.log"
+    ]
+  },
+  "provider": {},
+  "model": "opencode/minimax-m2.5-free",
+  "small_model": "opencode/big-pickle",
+  "agent": {
+    "simple": {
+      "description": "Quick questions, summaries, simple tasks",
+      "model": "opencode/big-pickle"
     },
-    "supabase": {
+    "build": {
+      "description": "General coding tasks, bug fixes, implementation",
+      "model": "opencode/minimax-m2.5-free"
+    },
+    "plan": {
+      "description": "Code review, planning, architecture decisions",
+      "model": "opencode/minimax-m2.5-free"
+    },
+    "web": {
+      "description": "Web development, frontend, UI/UX tasks",
+      "model": "chutes/moonshotai/Kimi-K2.5-TEE"
+    },
+    "vibe": {
+      "description": "Complex coding, vibe coding, advanced tasks",
+      "model": "chutes/zai-org/GLM-4.7-TEE"
+    },
+    "heavy": {
+      "description": "Heavy tasks, fallback when free models fail",
+      "model": "chutes/MiniMaxAI/MiniMax-M2.5-TEE"
+    }
+  },
+  "mcp": {
+    "github": {
       "type": "remote",
-      "url": "https://mcp.supabase.com/mcp?project_ref=tstywtfdhhmtngrmwyxi",
-      "enabled": true
+      "url": "https://api.githubcopilot.com/mcp",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_TOKEN}"
+      }
+    },
+    "linear": {
+      "type": "remote",
+      "url": "https://mcp.linear.app/sse"
+    },
+    "vercel": {
+      "type": "remote",
+      "url": "https://mcp.vercel.com"
+    },
+    "deepwiki": {
+      "type": "remote",
+      "url": "https://mcp.deepwiki.com/mcp"
+    },
+    "huggingface": {
+      "type": "remote",
+      "url": "https://hf.co/mcp"
+    },
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    "exa": {
+      "type": "remote",
+      "url": "https://mcp.exa.ai/mcp"
     }
   }
 }

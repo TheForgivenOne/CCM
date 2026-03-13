@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { Mistral } from '@mistralai/mistralai';
 import { getTransactionsByUserId, getBalance, getSettingsByUserId, createSettings } from '@/lib/db';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
@@ -11,18 +11,19 @@ async function getUserFromToken() {
   return verifyToken(token);
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     const payload = await getUserFromToken();
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const transactions = getTransactionsByUserId(payload.userId);
-    const balance = getBalance(payload.userId);
-    let settings = getSettingsByUserId(payload.userId);
+    const userId = payload.userId;
+    const transactions = await getTransactionsByUserId(userId);
+    const balance = await getBalance(userId);
+    let settings = await getSettingsByUserId(userId);
     if (!settings) {
-      settings = createSettings(payload.userId);
+      settings = await createSettings(userId);
     }
 
     const incomeCategories = JSON.parse(settings.income_categories);

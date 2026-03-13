@@ -48,7 +48,7 @@ export default function TransactionForm({ onSuccess }: TransactionFormProps) {
             : data.settings.expense_categories;
           setCategories(cats || (type === 'income' ? defaultIncomeCategories : defaultExpenseCategories));
         }
-      } catch (err) {
+      } catch {
         setCategories(type === 'income' ? defaultIncomeCategories : defaultExpenseCategories);
       }
     };

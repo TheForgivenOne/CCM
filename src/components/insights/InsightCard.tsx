@@ -9,7 +9,7 @@ interface InsightCardProps {
   className?: string;
 }
 
-export default function InsightCard({ type, title, description, severity = 'info', action, className = '' }: InsightCardProps) {
+export default function InsightCard({ title, description, severity = 'info', action, className = '' }: InsightCardProps) {
   const severityStyles = {
     warning: {
       border: 'border-l-[#F59E0B]',

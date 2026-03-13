@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui/Toast";
+import { ConvexClientProvider } from "@/components/providers/ConvexProvider";
 
 export const metadata: Metadata = {
   title: "Calculated Cash Management",
@@ -20,9 +21,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased">
-        <ToastProvider>
-          {children}
-        </ToastProvider>
+        <ConvexClientProvider>
+          <ToastProvider>
+            {children}
+          </ToastProvider>
+        </ConvexClientProvider>
       </body>
     </html>
   );

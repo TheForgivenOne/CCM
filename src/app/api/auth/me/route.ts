@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getUserById } from '@/lib/db';
 import { verifyToken, getTokenFromCookies } from '@/lib/auth';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const token = await getTokenFromCookies();
     
@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const user = getUserById(payload.userId);
+    const userId = parseInt(payload.userId, 10);
+    const user = await getUserById(userId);
     if (!user) {
       return NextResponse.json(
         { error: 'User not found' },

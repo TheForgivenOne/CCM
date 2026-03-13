@@ -8,7 +8,7 @@ import Select from '@/components/ui/Select';
 import Button from '@/components/ui/Button';
 
 interface Transaction {
-  id: number;
+  id: number | string;
   amount: number;
   type: 'income' | 'expense';
   category: string;
@@ -16,13 +16,13 @@ interface Transaction {
   date: string;
   recurring?: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly' | null;
   recurring_end?: string | null;
-  parent_id?: number | null;
+  parent_id?: number | string | null;
 }
 
 interface TransactionListProps {
   transactions: Transaction[];
   onUpdate?: (transaction: Transaction) => void;
-  onDelete?: (id: number) => void;
+  onDelete?: (id: number | string) => void;
 }
 
 const defaultCategories = {
@@ -48,12 +48,15 @@ export default function TransactionList({ transactions, onUpdate, onDelete }: Tr
 
   const handleEdit = (tx: Transaction) => {
     setEditingTransaction(tx);
+    const dateStr = typeof tx.date === 'number' 
+      ? new Date(tx.date).toISOString().split('T')[0]
+      : tx.date.split('T')[0];
     setEditForm({
       amount: tx.amount.toString(),
       type: tx.type,
       category: tx.category,
       description: tx.description || '',
-      date: tx.date.split('T')[0],
+      date: dateStr,
     });
   };
 
@@ -116,7 +119,7 @@ export default function TransactionList({ transactions, onUpdate, onDelete }: Tr
       <div className="space-y-2">
         {filtered.map((tx) => (
           <div
-            key={tx.id}
+            key={`transaction-${tx.id}`}
             className="glass rounded-xl p-4 flex items-center justify-between hover:border-zinc-300 dark:hover:border-zinc-700 transition-colors"
           >
             <div className="flex items-center gap-3 min-w-0">
@@ -153,7 +156,7 @@ export default function TransactionList({ transactions, onUpdate, onDelete }: Tr
                   {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
                 </p>
                 <p className="text-xs text-zinc-400">
-                  {new Date(tx.date).toLocaleDateString()}
+                  {new Date(typeof tx.date === 'number' ? tx.date : tx.date).toLocaleDateString()}
                 </p>
               </div>
 

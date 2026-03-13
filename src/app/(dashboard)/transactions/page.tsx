@@ -6,7 +6,7 @@ import TransactionList from '@/components/transactions/TransactionList';
 import Card from '@/components/ui/Card';
 
 interface Transaction {
-  id: number;
+  id: number | string;
   amount: number;
   type: 'income' | 'expense';
   category: string;
@@ -37,7 +37,7 @@ export default function TransactionsPage() {
     fetchTransactions();
   }, []);
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: number | string) => {
     if (!confirm('Are you sure you want to delete this transaction?')) return;
 
     try {

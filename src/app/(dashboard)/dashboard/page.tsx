@@ -9,12 +9,12 @@ import AISummaryCard from '@/components/dashboard/AISummaryCard';
 import Badge from '@/components/ui/Badge';
 
 interface Transaction {
-  id: number;
+  id: number | string;
   amount: number;
   type: 'income' | 'expense';
   category: string;
   description: string;
-  date: string;
+  date: string | number;
 }
 
 interface DashboardData {
@@ -49,7 +49,7 @@ export default function DashboardPage() {
         ]);
 
         const transactionsData = await transactionsRes.json();
-        const settingsData = await settingsRes.json();
+        await settingsRes.json();
 
         const transactions = transactionsData.transactions || [];
         
@@ -63,7 +63,11 @@ export default function DashboardPage() {
 
         const balance = totalIncome - totalExpenses;
         
-        const sortedByDate = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sortedByDate = [...transactions].sort((a, b) => {
+          const dateA = typeof a.date === 'number' ? a.date : new Date(a.date).getTime();
+          const dateB = typeof b.date === 'number' ? b.date : new Date(b.date).getTime();
+          return dateA - dateB;
+        });
         let runningBalance = 0;
         let allTimeHigh = 0;
         for (const t of sortedByDate) {
@@ -167,9 +171,9 @@ export default function DashboardPage() {
 
           {data?.recentTransactions && data.recentTransactions.length > 0 ? (
             <div className="space-y-3">
-              {data.recentTransactions.map((tx) => (
+              {data.recentTransactions.map((tx, index) => (
                 <div 
-                  key={tx.id}
+                  key={`recent-${String(tx.id)}-${index}`}
                   className="flex items-center justify-between py-2 border-b border-zinc-100 dark:border-zinc-800 last:border-0"
                 >
                   <div className="flex items-center gap-3">
@@ -190,7 +194,7 @@ export default function DashboardPage() {
                       {tx.type === 'income' ? '+' : '-'}${tx.amount.toFixed(2)}
                     </p>
                     <p className="text-xs text-zinc-400">
-                      {new Date(tx.date).toLocaleDateString()}
+                      {new Date(typeof tx.date === 'number' ? tx.date : tx.date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
